@@ -7,7 +7,7 @@ import json
 import websocket
 import ipaddress
 from threading import Timer
-import sys
+import logging
 
 
 class RisListener:
@@ -114,7 +114,7 @@ class RisListener:
         try:
             str_prefix = item["prefix"]
         except:
-            print(item)
+            logging.debug("{}: {}".format(self.__class__.__name__, item))
         prefix = ipaddress.ip_network(str_prefix)
 
         same_version_prefix_index = self.prefixes_index[str(prefix.version)]
@@ -174,7 +174,7 @@ class RisListener:
         }
 
         for prefix in prefixes:
-            print("Subscribing to " + prefix)
+            logging.info("{}: Subscribing to {}".format(self.__class__.__name__, prefix))
             self.ws.send(json.dumps({
                 "type": "ris_subscribe",
                 "data": {
@@ -205,6 +205,6 @@ class RisListener:
                                 self._filter_visibility(parsed)
 
                     if json_data["type"] == "pong":
-                        print("{}: {}".format(self.__class__.__name__, data), file=sys.stderr)
+                        logging.debug("{}: {}".format(self.__class__.__name__, data))
             except:
-                print("Error while reading the JSON from WS")
+                logging.error("{}: Error while reading the JSON from WS".format(self.__class__.__name__))

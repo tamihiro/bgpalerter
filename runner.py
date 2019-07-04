@@ -8,6 +8,13 @@ import smtplib
 from bgpalerter import BGPalerter
 import os
 from email.mime.text import MIMEText
+import logging
+from functools import partial
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s (%(levelname)-8s) %(message)s',
+                    filename=os.getcwd() + '/' + os.path.basename(os.path.dirname(os.path.abspath(__file__))) + '.log',
+                    filemode='a')
 
 config = yaml.safe_load(open("config.yml", "r").read())
 
@@ -15,7 +22,7 @@ config = yaml.safe_load(open("config.yml", "r").read())
 to_be_monitored = {}
 
 for file_name in config.get("monitored-prefixes-files"):
-    print("Loading prefixes from " + file_name)
+    logging.info("Loading prefixes from " + file_name)
     pointer = open(file_name, "r")
     input_list = yaml.safe_load(pointer.read())
     for item in input_list.keys():
@@ -42,6 +49,9 @@ def send_email(message):
     server.quit()
 
 
+def send_to_log(message, log_method=logging.debug):
+    log_method("{}".format(message))
+
 send_to_slack("Starting to monitor...")
 # send_email("Starting to monitor...")
 
@@ -52,5 +62,6 @@ alerter.on("hijack", send_to_slack)
 alerter.on("low-visibility", send_to_slack)
 alerter.on("difference", send_to_slack)
 # alerter.on("heartbeat", send_to_slack)
+alerter.on("error", partial(send_to_log, log_method=logging.error))
 
 alerter.monitor(to_be_monitored)
