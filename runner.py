@@ -23,7 +23,7 @@ for file_name in config.get("monitored-prefixes-files"):
 
 
 def send_to_slack(message):
-    command = "curl -X POST -H 'Content-type: application/json' --data '{\"text\": \"" + message + "\"}' " + \
+    command = "curl -s -o /dev/null -X POST -H 'Content-type: application/json' --data '{\"text\": \"" + message + "\"}' " + \
               config.get("slack-web-hook")
     os.system(command)
 
