@@ -7,6 +7,7 @@ import json
 import websocket
 import ipaddress
 from threading import Timer
+import sys
 
 
 class RisListener:
@@ -32,7 +33,10 @@ class RisListener:
         self._connect()
 
         def ping():
-            ws.send('2')
+            ws.send(json.dumps({
+                "type": "ping",
+                "data": {}
+                }))
             Timer(5, ping).start()
 
         ping()
@@ -199,5 +203,8 @@ class RisListener:
                                 self._filter_announcement(parsed)
                             elif parsed["type"] is "withdrawal":
                                 self._filter_visibility(parsed)
+
+                    if json_data["type"] == "pong":
+                        print("{}: {}".format(self.__class__.__name__, data), file=sys.stderr)
             except:
                 print("Error while reading the JSON from WS")
