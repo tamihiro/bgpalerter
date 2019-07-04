@@ -96,6 +96,16 @@ class BGPalerter:
         Timer(self.config.get("repeat-alert-after-seconds", 10), self._check_stats).start()
         triggered = False
         for key, value in self.stats["hijack"].items():
+            if self.config.get("permitted-more-specific-announcements") and \
+               self.config["permitted-more-specific-announcements"].get(value["altered"]["originAs"]) and \
+               value["altered"]["prefix"] in self.config["permitted-more-specific-announcements"][value["altered"]["originAs"]]:
+                logging.debug("{}: {} announced by AS{} seen by {} peers.".format(
+                    self.__class__.__name__,
+                    value["altered"]["prefix"],
+                    value["altered"]["originAs"],
+                    len(value["peers"])))
+                continue
+
             if len(value["peers"]) >= self.config.get("number-peers-before-hijack-alert", 0):
                 self._publish("hijack", self._get_hijack_alert_message_verbose(value))
                 triggered = True

@@ -33,3 +33,8 @@ repeat-status-heartbeat-after-seconds: 400
 # stop sending the same alert after x seconds. Default 600
 reset-after-seconds: 60
 
+# permit as65000 to announce subnet of 84.205.65.0/25
+#permitted-more-specific-announcements:
+#  65000:
+#    - 84.205.65.0/26
+#    - 84.205.65.64/26
