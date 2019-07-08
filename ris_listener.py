@@ -199,9 +199,11 @@ class RisListener:
                     if json_data["type"] == "ris_message":
                         for parsed in self.unpack(json_data):
                             if parsed["type"] is "announcement":
+                                logging.debug("{}: announcement: {}".format(self.__class__.__name__, parsed))
                                 self._filter_hijack(parsed)
                                 self._filter_announcement(parsed)
                             elif parsed["type"] is "withdrawal":
+                                logging.info("{}: withdrawal: {}".format(self.__class__.__name__, parsed))
                                 self._filter_visibility(parsed)
 
                     if json_data["type"] == "pong":
