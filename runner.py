@@ -12,7 +12,7 @@ import logging
 from functools import partial
 
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s (%(levelname)-8s) %(message)s',
+                    format='%(asctime)s (%(levelname)-8s) (%(threadName)-10s) %(message)s',
                     filename=os.getcwd() + '/' + os.path.basename(os.path.dirname(os.path.abspath(__file__))) + '.log',
                     filemode='a')
 
