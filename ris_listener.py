@@ -33,11 +33,14 @@ class RisListener:
         self._connect()
 
         def ping():
-            ws.send(json.dumps({
-                "type": "ping",
-                "data": {}
-                }))
             Timer(5, ping).start()
+            try:
+                self.ws.send(json.dumps({
+                    "type": "ping",
+                    "data": {}
+                    }))
+            except websocket._exceptions.WebSocketConnectionClosedException:
+                logging.error("{}: WebSocketConnectionClosedException: wait for subscribe() to reconnect to server..".format(self.__class__.__name__))
 
         ping()
 
@@ -173,40 +176,55 @@ class RisListener:
             "6": list(filter(lambda ip: ip.version == 6, ip_list)),
         }
 
-        for prefix in prefixes:
-            logging.info("{}: Subscribing to {}".format(self.__class__.__name__, prefix))
-            self.ws.send(json.dumps({
-                "type": "ris_subscribe",
-                "data": {
-                    "prefix": prefix,
-                    "moreSpecific": True,
-                    "type": "UPDATE",
-                    "socketOptions": {
-                        "includeRaw": False
-                    }
-                }
-            }))
-
-        for data in self.ws:
+        while True:
             try:
-                json_data = json.loads(data)
-                if "type" in json_data:
+                for prefix in prefixes:
+                    logging.info("{}: Subscribing to {}".format(self.__class__.__name__, prefix))
+                    self.ws.send(json.dumps({
+                        "type": "ris_subscribe",
+                        "data": {
+                            "prefix": prefix,
+                            "moreSpecific": True,
+                            "type": "UPDATE",
+                            "socketOptions": {
+                                "includeRaw": False
+                            }
+                        }
+                    }))
 
-                    if json_data["type"] == "ris_error":
-                        for call in self.callbacks["error"]:
-                            call(json_data)
+                for data in self.ws:
+                    try:
+                        json_data = json.loads(data)
+                        if "type" in json_data:
+                            
+                            if json_data["type"] == "ris_error":
+                                for call in self.callbacks["error"]:
+                                    call(json_data)
 
-                    if json_data["type"] == "ris_message":
-                        for parsed in self.unpack(json_data):
-                            if parsed["type"] is "announcement":
-                                logging.debug("{}: announcement: {}".format(self.__class__.__name__, parsed))
-                                self._filter_hijack(parsed)
-                                self._filter_announcement(parsed)
-                            elif parsed["type"] is "withdrawal":
-                                logging.info("{}: withdrawal: {}".format(self.__class__.__name__, parsed))
-                                self._filter_visibility(parsed)
+                            if json_data["type"] == "ris_message":
+                                for parsed in self.unpack(json_data):
+                                    if parsed["type"] is "announcement":
+                                        logging.debug("{}: announcement: {}".format(self.__class__.__name__, parsed))
+                                        self._filter_hijack(parsed)
+                                        self._filter_announcement(parsed)
+                                    elif parsed["type"] is "withdrawal":
+                                        logging.info("{}: withdrawal: {}".format(self.__class__.__name__, parsed))
+                                        self._filter_visibility(parsed)
+                            if json_data["type"] == "pong":
+                                logging.debug("{}: {}".format(self.__class__.__name__, data))
+                    except:
+                        logging.error("{}: Error while reading the JSON from WS".format(self.__class__.__name__))
+                        
+            except websocket._exceptions.WebSocketConnectionClosedException:
+                logging.error("{}: WebSocketConnectionClosedException: reconnecting..".format(self.__class__.__name__))
+                self.ws.shutdown()
+                while self.ws.connected:
+                    continue
+                logging.info("{}: websocket connection closed.".format(self.__class__.__name__))
+                self._connect()
+                while self.ws.connected is False:
+                    continue
+                logging.info("{}: websocket connection established.".format(self.__class__.__name__))
+                
 
-                    if json_data["type"] == "pong":
-                        logging.debug("{}: {}".format(self.__class__.__name__, data))
-            except:
-                logging.error("{}: Error while reading the JSON from WS".format(self.__class__.__name__))
+                
