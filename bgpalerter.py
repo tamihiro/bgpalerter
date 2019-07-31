@@ -93,7 +93,8 @@ class BGPalerter:
             logging.info("{}: stats reset: [{}][{}]".format(self.__class__.__name__, k, v))
         except KeyError:
             logging.error("{}: KeyError: [{}][{}]".format(self.__class__.__name__, k, v))
-        self.triggered[k].remove(v)
+        else:    
+            self.triggered[k].remove(v)
 
     def _check_stats(self):
         Timer(self.config.get("repeat-alert-after-seconds", 10), self._check_stats).start()
