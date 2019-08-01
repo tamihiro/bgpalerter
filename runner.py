@@ -52,7 +52,7 @@ def send_email(message):
 def send_to_log(message, log_method=logging.debug):
     log_method("{}".format(message))
 
-send_to_slack("Starting to monitor...")
+send_to_log("Starting to monitor...", log_method=logging.info)
 # send_email("Starting to monitor...")
 
 # change the way you want to be notified below
