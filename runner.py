@@ -59,7 +59,7 @@ send_to_log("Starting to monitor...", log_method=logging.info)
 alerter = BGPalerter(config)
 
 alerter.on("hijack", send_to_slack)
-alerter.on("hijack", partial(send_to_log, log_method=logging.warn))
+alerter.on("hijack", partial(send_to_log, log_method=logging.warning))
 alerter.on("low-visibility", send_to_slack)
 alerter.on("low-visibility", partial(send_to_log, log_method=logging.warn))
 alerter.on("difference", send_to_slack)
