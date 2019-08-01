@@ -6,6 +6,7 @@
 from ris_listener import RisListener
 from threading import Timer
 from functools import partial
+import ipaddress
 import logging
 
 
@@ -98,10 +99,14 @@ class BGPalerter:
 
     def _check_stats(self):
         Timer(self.config.get("repeat-alert-after-seconds", 10), self._check_stats).start()
+
+        def supernet_in_list(prefix, supernets):
+            return list(filter(lambda n: ipaddress.ip_network(prefix).subnet_of(ipaddress.ip_network(n)), supernets))
+
         for key, value in self.stats["hijack"].items():
             if self.config.get("permitted-more-specific-announcements") and \
                self.config["permitted-more-specific-announcements"].get(value["altered"]["originAs"]) and \
-               value["altered"]["prefix"] in self.config["permitted-more-specific-announcements"][value["altered"]["originAs"]]:
+               supernet_in_list(value["altered"]["prefix"], self.config["permitted-more-specific-announcements"][value["altered"]["originAs"]]):
                 logging.debug("{}: {} announced by AS{} seen by {} peers.".format(
                     self.__class__.__name__,
                     value["altered"]["prefix"],
