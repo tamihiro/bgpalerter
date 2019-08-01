@@ -46,7 +46,18 @@ class RisListener:
 
     def _connect(self):
         self.ws.connect(self.url)
+        logging.info("{}: websocket connection established.".format(self.__class__.__name__))
 
+    def _reconnect(self):
+        self.ws.shutdown()
+        while self.ws.connected:
+            continue
+        logging.info("{}: websocket connection closed.".format(self.__class__.__name__))
+        self._connect()
+        while not self.ws.connected:
+            continue
+        logging.info("{}: websocket connection established.".format(self.__class__.__name__))
+        
     def on(self, event, callback):
         if event not in self.callbacks:
             raise Exception('This is not a valid event: ' + event)
@@ -217,14 +228,7 @@ class RisListener:
                         
             except websocket._exceptions.WebSocketConnectionClosedException:
                 logging.error("{}: WebSocketConnectionClosedException: reconnecting..".format(self.__class__.__name__))
-                self.ws.shutdown()
-                while self.ws.connected:
-                    continue
-                logging.info("{}: websocket connection closed.".format(self.__class__.__name__))
-                self._connect()
-                while self.ws.connected is False:
-                    continue
-                logging.info("{}: websocket connection established.".format(self.__class__.__name__))
+                self._reconnect()
                 
 
                 
