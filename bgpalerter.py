@@ -130,23 +130,23 @@ class BGPalerter:
                 Timer(self.config.get("reset-after-seconds", 600), partial(self.reset, k=k, v=v)).start()
 
     def _get_hijack_alert_message(self, data):
-        message = "Possible Hijack, it should be " + data["expected"]["prefix"] + \
+        message = "Possible hijack, it should be " + data["expected"]["prefix"] + \
                   " AS" + str(data["expected"]["originAs"])
 
         if "description" in data:
             message += " (" + str(data["description"]) + ") "
         message += "now announced " + data["altered"]["prefix"] + " AS" + str(data["altered"]["originAs"])
-        message += " seen by " + str(len(data["peers"])) + " peers"
+        message += " seen by at least " + str(len(data["peers"])) + " peer(s)"
         return message
 
     def _get_hijack_alert_message_verbose(self, data):
-        message = "Possible Hijack, it should be " + data["expected"]["prefix"] + \
+        message = "Possible hijack, it should be " + data["expected"]["prefix"] + \
                   " AS" + str(data["expected"]["originAs"])
 
         if "description" in data:
             message += " (" + str(data["description"]) + ") "
         message += "now announced " + data["altered"]["prefix"] + " AS" + str(data["altered"]["originAs"])
-        message += " seen by "+ str(len(data["peers"])) + " peers " + str(data["peers"])
+        message += " seen by at least "+ str(len(data["peers"])) + " peer(s) " + str(data["peers"])
         return message
 
     def _get_low_visibility_alert_message(self, prefix, number_peers):
