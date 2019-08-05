@@ -3,4 +3,4 @@ config.yml
 monitored_prefixes.yml
 monitored_prefixes_test.yml
 env/
-update_monitored_prefixes/
+bgpalerter_private_config/
