@@ -32,7 +32,10 @@ class BGPalerter:
         self._check_stats()
         self._heartbeat()
 
-        self._ris = RisListener(self.config.get("websocket-data-service"))
+        self._ris = RisListener(self.config.get("websocket-data-service"),
+                                proxy_host=self.config.get("proxy-host"),
+                                proxy_port=self.config.get("proxy-port"),
+                                )
         self._ris.on("hijack", self._collect_stats_hijack)
         self._ris.on("difference", self._collect_stats_difference)
         self._ris.on("withdrawal", lambda data: self._collect_stats_low_visibility(data, False))

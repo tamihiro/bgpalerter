@@ -12,9 +12,11 @@ import logging
 
 class RisListener:
 
-    def __init__(self, url):
+    def __init__(self, url, proxy_host, proxy_port):
         self.prefixes = {}
         self.url = url
+        self.proxy_host = proxy_host
+        self.proxy_port = proxy_port
         self.prefixes_index = {
             "4": [],
             "6": [],
@@ -37,7 +39,7 @@ class RisListener:
             try:
                 self.ws.send(json.dumps({
                     "type": "ping",
-                    "data": {}
+                    #"data": {}
                     }))
             except websocket._exceptions.WebSocketConnectionClosedException:
                 logging.error("{}: WebSocketConnectionClosedException: wait for subscribe() to reconnect to server..".format(self.__class__.__name__))
@@ -45,7 +47,10 @@ class RisListener:
         ping()
 
     def _connect(self):
-        self.ws.connect(self.url)
+        if self.proxy_host and self.proxy_port:
+            self.ws.connect(self.url, http_proxy_host=self.proxy_host, http_proxy_port=self.proxy_port)
+        else:
+            self.ws.connect(self.url)
         logging.info("{}: websocket connection established.".format(self.__class__.__name__))
 
     def _reconnect(self):
