@@ -7,6 +7,7 @@ from ris_listener import RisListener
 from threading import Timer
 from functools import partial
 import ipaddress
+import sys
 import logging
 
 
@@ -94,8 +95,10 @@ class BGPalerter:
             logging.info("{}: stats reset: [{}][{}]".format(self.__class__.__name__, k, v))
         except KeyError:
             logging.error("{}: KeyError: [{}][{}]".format(self.__class__.__name__, k, v))
-        else:    
+        try:
             self.triggered[k].remove(v)
+        except:
+            logging.error("{}: {}: [{}][{}]".format(self.__class__.__name__, sys.exc_info()[1], k, v))
 
     def _check_stats(self):
         Timer(self.config.get("repeat-alert-after-seconds", 10), self._check_stats).start()
