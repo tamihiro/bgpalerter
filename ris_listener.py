@@ -48,6 +48,7 @@ class RisListener:
 
     def _connect(self):
         if self.proxy_host and self.proxy_port:
+            logging.info("{}: using proxy for websocket connection {}:{}".format(self.__class__.__name__, self.proxy_host, self.proxy_port, ))
             self.ws.connect(self.url, http_proxy_host=self.proxy_host, http_proxy_port=self.proxy_port)
         else:
             self.ws.connect(self.url)
