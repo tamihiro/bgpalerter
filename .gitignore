@@ -4,3 +4,4 @@ monitored_prefixes.yml
 monitored_prefixes_test.yml
 env/
 bgpalerter_private_config/
+sv_run/
