@@ -15,13 +15,17 @@ from email.mime.text import MIMEText
 import logging
 from functools import partial
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s (%(levelname)-8s) (%(threadName)-10s) %(message)s',
-                    filename=os.getcwd() + '/' + os.path.basename(os.path.dirname(os.path.abspath(__file__))) + '.log',
-                    filemode='a')
-
 config = yaml.safe_load(open("config.yml", "r").read())
 
+logging_config = {"format": '%(asctime)s (%(levelname)-8s) (%(threadName)-10s) %(message)s',}
+if config.get("log-filename"):
+    logging_config["filename"] = os.getcwd() + '/' + config.get("log-filename")
+    logging_config["filemode"] = "a"
+if config.get("log-level"):
+    logging_config["level"] = getattr(logging, config.get("log-level").upper())
+else:
+    logging_config["level"] = logging.INFO
+logging.basicConfig(**logging_config)
 
 to_be_monitored = {}
 
