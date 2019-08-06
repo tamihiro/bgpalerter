@@ -1,5 +1,14 @@
 # Please, rename this file to config.yml
 
+# Log filename (default to stdout)
+#log-filename: bgpalerter.log
+# Log-level (default to INFO)
+#log-level: debug
+
+# Proxy host and port (for both websocket and slack)
+#proxy-host: proxy.example.com
+#proxy-port: 8888
+
 # The streaming service used to have real-time bgp data
 websocket-data-service: wss://ris-live.ripe.net/v1/ws/
 
