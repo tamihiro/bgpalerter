@@ -43,6 +43,9 @@ class RisListener:
                     }))
             except websocket._exceptions.WebSocketConnectionClosedException:
                 logging.error("{}: WebSocketConnectionClosedException: wait for subscribe() to reconnect to server..".format(self.__class__.__name__))
+            except:
+                logging.error("{}: {}: shutting down websocket connection..".format(self.__class__.__name__, sys.exc_info()[1]))
+                self.ws.shutdown()
 
         ping()
 
@@ -62,7 +65,7 @@ class RisListener:
         self._connect()
         while not self.ws.connected:
             continue
-        logging.info("{}: websocket connection established.".format(self.__class__.__name__))
+        logging.info("{}: websocket reconnected.".format(self.__class__.__name__))
         
     def on(self, event, callback):
         if event not in self.callbacks:
