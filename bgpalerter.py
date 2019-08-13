@@ -4,7 +4,7 @@
 # Licensed under BSD 3-Clause License. See LICENSE for more details.
 
 from ris_listener import RisListener
-from threading import Timer
+from threading import Timer, Lock
 from functools import partial
 import ipaddress
 import sys
@@ -14,6 +14,7 @@ import logging
 class BGPalerter:
 
     def __init__(self, config):
+        self.lock = Lock()
         self.monitored_prefixes = {}
         self.config = config
 
@@ -101,7 +102,7 @@ class BGPalerter:
         try:
             self.triggered[k].remove(v)
         except:
-            logging.error("{}: {}: [{}][{}]".format(self.__class__.__name__, sys.exc_info()[1], k, v))
+            logging.error("{}: {}: {}: [{}][{}]".format(self.__class__.__name__, sys.exc_info()[0].__name__, sys.exc_info()[1], k, v))
 
     def _check_stats(self):
         Timer(self.config.get("repeat-alert-after-seconds", 10), self._check_stats).start()
@@ -109,6 +110,7 @@ class BGPalerter:
         def supernet_in_list(prefix, supernets):
             return list(filter(lambda n: ipaddress.ip_network(prefix).subnet_of(ipaddress.ip_network(n)), supernets))
 
+        self.lock.acquire()
         for key, value in self.stats["hijack"].items():
             if self.config.get("permitted-more-specific-announcements") and \
                self.config["permitted-more-specific-announcements"].get(value["altered"]["originAs"]) and \
@@ -131,6 +133,7 @@ class BGPalerter:
                 self._publish("low-visibility", self._get_low_visibility_alert_message_verbose(prefix, list(value.keys())))
                 self.triggered["low-visibility"].add(prefix)
 
+        self.lock.release()
         for k, s in self.triggered.items():
             for v in s:
                 Timer(self.config.get("reset-after-seconds", 600), partial(self.reset, k=k, v=v)).start()
