@@ -3,6 +3,7 @@
 #
 # Licensed under BSD 3-Clause License. See LICENSE for more details.
 
+import sys
 import json
 import websocket
 import ipaddress
