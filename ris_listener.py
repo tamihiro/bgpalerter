@@ -7,7 +7,7 @@ import sys
 import json
 import websocket
 import ipaddress
-from threading import Timer
+import threading
 import logging
 
 
@@ -16,8 +16,8 @@ class RisListener:
     def __init__(self, url, proxy_host, proxy_port):
         self.prefixes = {}
         self.url = url
-        self.proxy_host = proxy_host
-        self.proxy_port = proxy_port
+        self.proxy_host = proxy_host or None
+        self.proxy_port = proxy_port or 0
         self.prefixes_index = {
             "4": [],
             "6": [],
@@ -33,40 +33,62 @@ class RisListener:
 
         ws = websocket.WebSocket()
         self.ws = ws
+        self._closed = True
         self._connect()
 
         def ping():
-            Timer(5, ping).start()
+            threading.Timer(5, ping).start()
             try:
                 self.ws.send(json.dumps({
                     "type": "ping",
                     #"data": {}
                     }))
-            except websocket._exceptions.WebSocketConnectionClosedException:
-                logging.error("{}: WebSocketConnectionClosedException: wait for subscribe() to reconnect to server..".format(self.__class__.__name__))
             except:
-                logging.error("{}: {}: shutting down websocket connection..".format(self.__class__.__name__, sys.exc_info()[1]))
-                self.ws.shutdown()
+                if not self._closed:
+                    logging.error("{}: {}: shutting down websocket connection..".format(self.__class__.__name__, sys.exc_info()[1]))
+                    try:
+                        self.ws.shutdown()
+                    except:
+                        pass
+                if not self.ws.connected:
+                    logging.warning("{}: websocket connection closed.".format(self.__class__.__name__))
+                    if not self._closed:
+                        self._closed = True
 
         ping()
 
     def _connect(self):
         if self.proxy_host and self.proxy_port:
             logging.info("{}: using proxy for websocket connection {}:{}".format(self.__class__.__name__, self.proxy_host, self.proxy_port, ))
-            self.ws.connect(self.url, http_proxy_host=self.proxy_host, http_proxy_port=self.proxy_port)
-        else:
-            self.ws.connect(self.url)
-        logging.info("{}: websocket connection established.".format(self.__class__.__name__))
+        for n in range(1, 11):
+            try:
+                self.ws.connect(self.url, timeout=3, http_proxy_host=self.proxy_host, http_proxy_port=self.proxy_port, )
+            #except (websocket._exceptions.WebSocketTimeoutException, websocket._exceptions.WebSocketProxyException) as e:
+            #    logging.warning("{}: websocket connect timedout. [{}]".format(self.__class__.__name__, n))
+            except:
+                logging.warning("{}: {} [{}]".format(self.__class__.__name__, sys.exc_info()[1], n))
+                continue
+            if self.ws.connected:
+                logging.info("{}: websocket connection established.".format(self.__class__.__name__))
+                self._closed = False
+                return
+        logging.critical("{}: websocket connect failed, exiting...".format(self.__class__.__name__))
+        mt = threading.main_thread()
+        for t in threading.enumerate():
+            if t is mt:
+                continue
+            try:
+                t.cancel()
+            except:
+                logging.warning("{}: cancel() failed: {}".format(self.__class__.__name__, sys.exc_info()[1]))
+            t.join()
+        sys.exit(1)
 
     def _reconnect(self):
-        self.ws.shutdown()
         while self.ws.connected:
-            continue
+            self.ws.shutdown()
         logging.info("{}: websocket connection closed.".format(self.__class__.__name__))
         self._connect()
-        while not self.ws.connected:
-            continue
-        logging.info("{}: websocket reconnected.".format(self.__class__.__name__))
         
     def on(self, event, callback):
         if event not in self.callbacks:
@@ -198,6 +220,9 @@ class RisListener:
         }
 
         while True:
+            if self._closed:
+                self._reconnect()
+
             try:
                 for prefix in prefixes:
                     logging.info("{}: Subscribing to {}".format(self.__class__.__name__, prefix))
@@ -214,31 +239,26 @@ class RisListener:
                     }))
 
                 for data in self.ws:
-                    try:
-                        json_data = json.loads(data)
-                        if "type" in json_data:
-                            
-                            if json_data["type"] == "ris_error":
-                                for call in self.callbacks["error"]:
-                                    call(json_data)
-
-                            if json_data["type"] == "ris_message":
-                                for parsed in self.unpack(json_data):
-                                    if parsed["type"] is "announcement":
-                                        logging.debug("{}: announcement: {}".format(self.__class__.__name__, parsed))
-                                        self._filter_hijack(parsed)
-                                        self._filter_announcement(parsed)
-                                    elif parsed["type"] is "withdrawal":
-                                        logging.info("{}: withdrawal: {}".format(self.__class__.__name__, parsed))
-                                        self._filter_visibility(parsed)
-                            if json_data["type"] == "pong":
-                                logging.debug("{}: {}".format(self.__class__.__name__, data))
-                    except:
-                        logging.error("{}: Error while reading the JSON from WS".format(self.__class__.__name__))
+                    json_data = json.loads(data)
+                    if "type" in json_data:
                         
-            except websocket._exceptions.WebSocketConnectionClosedException:
-                logging.error("{}: WebSocketConnectionClosedException: reconnecting..".format(self.__class__.__name__))
-                self._reconnect()
-                
+                        if json_data["type"] == "ris_error":
+                            for call in self.callbacks["error"]:
+                                call(json_data)
 
-                
+                        if json_data["type"] == "ris_message":
+                            for parsed in self.unpack(json_data):
+                                if parsed["type"] is "announcement":
+                                    logging.debug("{}: announcement: {}".format(self.__class__.__name__, parsed))
+                                    self._filter_hijack(parsed)
+                                    self._filter_announcement(parsed)
+                                elif parsed["type"] is "withdrawal":
+                                    logging.info("{}: withdrawal: {}".format(self.__class__.__name__, parsed))
+                                    self._filter_visibility(parsed)
+                        if json_data["type"] == "pong":
+                            logging.debug("{}: {}".format(self.__class__.__name__, data))
+            #except (websocket._exceptions.WebSocketConnectionClosedException, websocket._exceptions.WebSocketTimeoutException, ConnectionResetError) as e:
+            except:
+                logging.error("{}: {}: reconnecting..".format(self.__class__.__name__, sys.exc_info()[1]))
+                self._closed = True
+
