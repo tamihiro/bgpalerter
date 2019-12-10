@@ -132,6 +132,7 @@ class RisListener:
         same_version_prefix_index = self.prefixes_index[str(prefix.version)]
 
         if prefix in same_version_prefix_index:
+            logging.info("{}: withdrawal: {}".format(self.__class__.__name__, item))
             for call in self.callbacks["withdrawal"]:
                 call({
                     "prefix": str_prefix,
@@ -253,7 +254,6 @@ class RisListener:
                                     self._filter_hijack(parsed)
                                     self._filter_announcement(parsed)
                                 elif parsed["type"] is "withdrawal":
-                                    logging.info("{}: withdrawal: {}".format(self.__class__.__name__, parsed))
                                     self._filter_visibility(parsed)
                         if json_data["type"] == "pong":
                             logging.debug("{}: {}".format(self.__class__.__name__, data))
