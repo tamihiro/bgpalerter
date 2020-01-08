@@ -74,14 +74,16 @@ class RisListener:
                 return
         logging.critical("{}: websocket connect failed, exiting...".format(self.__class__.__name__))
         mt = threading.main_thread()
-        for t in threading.enumerate():
-            if t is mt:
-                continue
-            try:
-                t.cancel()
-            except:
-                logging.warning("{}: cancel() failed: {}".format(self.__class__.__name__, sys.exc_info()[1]))
-            t.join()
+        while threading.active_count() > 1:
+            logging.debug("{}: active thread count: {}".format(self.__class__.__name__, threading.active_count()))
+            for t in threading.enumerate():
+                if t is mt:
+                    continue
+                try:
+                    t.cancel()
+                except:
+                    logging.warning("{}: cancel() failed: {}".format(self.__class__.__name__, sys.exc_info()[1]))
+                t.join()
         sys.exit(1)
 
     def _reconnect(self):
