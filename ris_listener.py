@@ -5,11 +5,11 @@
 
 import sys
 import json
+import re
 import websocket
 import ipaddress
 import threading
 import logging
-
 
 class RisListener:
 
@@ -242,7 +242,20 @@ class RisListener:
                     }))
 
                 for data in self.ws:
-                    json_data = json.loads(data)
+                    try:
+                      json_data = json.loads(data)
+                    except json.decoder.JSONDecodeError:
+                      """
+                      2020-11-02 
+                      There has been an unnoticed change in the response message from '{"type": "pong","data":null}' to '{"type": "pong","data":undefined}' 
+                      which results in JSONDdcodeError.
+                      """
+                      if re.match(r'{"type": "pong",', data):
+                        continue
+                      else:
+                        logging.error("{}: {}: reconnecting..".format(self.__class__.__name__, sys.exc_info()[1]))
+                        self._closed = True
+                        break
                     if "type" in json_data:
                         
                         if json_data["type"] == "ris_error":
