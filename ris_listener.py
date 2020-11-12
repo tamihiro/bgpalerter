@@ -4,6 +4,7 @@
 # Licensed under BSD 3-Clause License. See LICENSE for more details.
 
 import sys
+import os
 import json
 import re
 import websocket
@@ -73,18 +74,7 @@ class RisListener:
                 self._closed = False
                 return
         logging.critical("{}: websocket connect failed, exiting...".format(self.__class__.__name__))
-        mt = threading.main_thread()
-        while threading.active_count() > 1:
-            logging.debug("{}: active thread count: {}".format(self.__class__.__name__, threading.active_count()))
-            for t in threading.enumerate():
-                if t is mt:
-                    continue
-                try:
-                    t.cancel()
-                except:
-                    logging.warning("{}: cancel() failed: {}".format(self.__class__.__name__, sys.exc_info()[1]))
-                t.join()
-        sys.exit(1)
+        os._exit(os.EX_TEMPFAIL)
 
     def _reconnect(self):
         while self.ws.connected:
